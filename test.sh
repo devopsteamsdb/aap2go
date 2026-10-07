@@ -91,8 +91,10 @@ check "PowerCLI configuration (ignore invalid certificates, CEIP off) applies to
     run_as 1000:0 pwsh -NoProfile -NonInteractive -Command '$c = Get-PowerCLIConfiguration -Scope AllUsers; Write-Host ("InvalidCertificateAction=" + $c.InvalidCertificateAction + " ParticipateInCEIP=" + $c.ParticipateInCEIP); if ($c.InvalidCertificateAction -ne "Ignore") { exit 1 }'
 check "Kerberos client tools (kinit, klist)" \
     run bash -c 'klist -V && command -v kinit'
-check "system tools (ssh, sshpass, git, jq, wget, vim, telnet, ping, expect, rsync, tar, unzip)" \
-    run bash -c 'ssh -V 2>&1 | head -1; sshpass -V | head -1; git --version; jq --version; wget --version | head -1; vi --version 2>/dev/null | head -1 || vim --version | head -1; command -v telnet ping expect rsync tar unzip mount.cifs >/dev/null && echo "telnet ping expect rsync tar unzip mount.cifs present"'
+check "system tools (ssh, sshpass, git, jq, wget, vi, nc, ping, expect, rsync, tar, gzip, unzip, gpg)" \
+    run bash -c 'ssh -V 2>&1 | head -1; sshpass -V | head -1; git --version; jq --version; wget --version | head -1; vi --version | head -1
+                 missing=""; for tool in nc ping expect rsync tar gzip unzip gpg kinit; do command -v "$tool" >/dev/null 2>&1 || missing="$missing $tool"; done
+                 [ -z "$missing" ] && echo "nc ping expect rsync tar gzip unzip gpg kinit present" || { echo "MISSING:$missing"; exit 1; }'
 check "ansible localhost ping" \
     run ansible localhost -m ansible.builtin.ping
 check "ansible-runner end to end (private data dir + playbook)" \

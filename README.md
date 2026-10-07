@@ -18,7 +18,7 @@ by GitHub Actions.
 | Windows management | `winrm` + `psrp` connection plugins with every auth backend: pywinrm/pypsrp with Kerberos, NTLM and CredSSP (`pykerberos`, `gssapi`, `krb5`, `pyspnego`, `requests-kerberos/-ntlm/-credssp`), Kerberos client (`kinit`, `klist`) with container friendly defaults |
 | PowerShell | pwsh 7 (Microsoft RHEL 9 repo) + modules: VMware.PowerCLI (CEIP off, invalid certificates ignored), VMware.vSphere.SsoAdmin, ImportExcel, PScribo, dbatools, SqlServerDsc, Cisco.IMC, Cisco.UCS.Core, Jenkins, PSWindowsUpdate, Pester, psCheckPoint, psPAS |
 | Python extras | docker, kubernetes, netapp-lib, pyvmomi, jmespath, netaddr, lxml, sansldap, dnspython, dpapi-ng, … (plus everything the collections declare) |
-| Tools | ssh, sshpass, git, rsync, tar/gzip/unzip, jq, wget, vim, telnet, ping, expect, cifs-utils, nfs-utils |
+| Tools | ssh, sshpass, git, rsync, tar/gzip/unzip, jq, wget, vi, nc (nmap-ncat), ping, expect, gpg |
 
 Every GitHub release lists the exact versions that went into the image (ansible-core, ansible,
 PowerShell, PowerCLI, all collections, Python and RPM packages).
