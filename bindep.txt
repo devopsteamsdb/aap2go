@@ -1,0 +1,41 @@
+# System packages for the execution environment (bindep format,
+# https://docs.opendev.org/opendev/bindep/latest/).
+#
+# Entries with the "compile" profile are only installed in the intermediate
+# builder stage (to build Python packages such as pykerberos from source) and
+# never end up in the final image. Packages come from the UBI 9 BaseOS/AppStream/CRB
+# repositories plus the Microsoft RHEL 9 repository (powershell).
+
+# build-time only
+gcc [platform:rpm compile]
+python3.12-devel [platform:rpm compile]
+krb5-devel [platform:rpm compile]
+
+# Kerberos client (kinit/klist) used by the winrm/psrp Kerberos authentication
+krb5-libs [platform:rpm]
+krb5-workstation [platform:rpm]
+
+# PowerShell Core (package "powershell" from packages.microsoft.com/rhel/9/prod)
+powershell [platform:rpm]
+libicu [platform:rpm]
+
+# SSH client + sshpass, git for git based content, archive tools for unarchive/synchronize
+openssh-clients [platform:rpm]
+sshpass [platform:rpm]
+git-core [platform:rpm]
+tar [platform:rpm]
+gzip [platform:rpm]
+unzip [platform:rpm]
+rsync [platform:rpm]
+
+# carried over from devopsteamsdb/ansible2go (apt: vim wget curl jq gnupg2
+# iputils-ping expect); curl is already in the base image. telnet, cifs-utils and
+# nfs-common are not available in the UBI repositories (and mounting shares is not
+# possible from a non-root execution environment anyway): nmap-ncat replaces telnet.
+vim-minimal [platform:rpm]
+wget [platform:rpm]
+jq [platform:rpm]
+gnupg2 [platform:rpm]
+iputils [platform:rpm]
+nmap-ncat [platform:rpm]
+expect [platform:rpm]

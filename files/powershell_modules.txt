@@ -1,0 +1,15 @@
+# PowerShell modules installed from the PowerShell Gallery for all users
+# (one module name per line; carried over from devopsteamsdb/ansible2go).
+VMware.PowerCLI
+VMware.vSphere.SsoAdmin
+ImportExcel
+PScribo
+dbatools
+SqlServerDsc
+Cisco.IMC
+Cisco.UCS.Core
+Jenkins
+PSWindowsUpdate
+Pester
+psCheckPoint
+psPAS

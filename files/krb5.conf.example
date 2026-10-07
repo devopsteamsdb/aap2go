@@ -1,0 +1,32 @@
+# Example full Kerberos client configuration for managing domain joined
+# Windows hosts. NOT installed into the image automatically.
+#
+# Usage options:
+#   a) AAP / ansible-runner: mount the host's /etc/krb5.conf into the job
+#      container (AAP: Settings > Job settings > "Paths to expose to isolated jobs"
+#      -> /etc/krb5.conf:/etc/krb5.conf:O)
+#   b) Bake it in: adapt this file and add to execution-environment.yml
+#        append_final: |
+#          COPY _build/files/krb5.conf /etc/krb5.conf
+#
+# Replace EXAMPLE.COM / example.com / dc1.example.com with your AD forest values.
+[libdefaults]
+    default_realm = EXAMPLE.COM
+    default_ccache_name = FILE:/tmp/krb5cc_%{uid}
+    dns_lookup_realm = false
+    dns_lookup_kdc = true
+    rdns = false
+    forwardable = true
+    ticket_lifetime = 24h
+    renew_lifetime = 7d
+
+[realms]
+    EXAMPLE.COM = {
+        kdc = dc1.example.com
+        kdc = dc2.example.com
+        admin_server = dc1.example.com
+    }
+
+[domain_realm]
+    .example.com = EXAMPLE.COM
+    example.com = EXAMPLE.COM

@@ -1,0 +1,38 @@
+---
+# Ansible collections installed from Ansible Galaxy (latest version at build time;
+# dependencies such as ansible.netcommon are resolved automatically).
+# The resolved versions are listed in every GitHub release.
+collections:
+  # --- carried over from devopsteamsdb/ansible2go (complete list)
+  - name: ansible.netcommon
+  - name: ansible.posix
+  - name: ansible.utils
+  - name: ansible.windows
+  - name: check_point.mgmt
+  - name: cisco.aci
+  - name: cisco.ios
+  - name: cisco.ise
+  - name: community.crypto
+  - name: community.docker
+  - name: community.general
+  - name: community.vmware
+  - name: community.windows
+  - name: containers.podman
+  - name: dellemc.openmanage
+  - name: f5networks.f5_modules
+  - name: fortinet.console
+  - name: fortinet.fortimanager
+  - name: fortinet.fortios
+  - name: fortinet.fortiswitch
+  - name: fortinet.fortiweb
+  - name: junipernetworks.junos
+  - name: kubernetes.core
+  - name: lowlydba.sqlserver
+  - name: microsoft.ad
+  - name: netapp.ontap
+  - name: netbox.netbox
+  - name: paloaltonetworks.panos
+  - name: vmware.vmware
+  - name: vmware.vmware_rest
+  # --- added
+  - name: splunk.es

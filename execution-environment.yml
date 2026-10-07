@@ -1,0 +1,81 @@
+---
+# aap2go - Ansible Automation Platform execution environment (ansible-builder schema v3).
+#
+# Built ONLINE (Galaxy, PyPI, UBI and Microsoft repositories) by GitHub Actions
+# (.github/workflows/build-ee.yml) or locally with ./build.sh.
+# Successor of devopsteamsdb/ansible2go: same collections and PowerShell modules,
+# but a real execution environment (ansible-runner, non-root, /runner) on RHEL 9 UBI.
+version: 3
+
+images:
+  base_image:
+    # Red Hat Universal Base Image 9 minimal (freely redistributable, no login needed).
+    # Red Hat's own ee-minimal-rhel9 can be used instead, see README.md.
+    name: registry.access.redhat.com/ubi9/ubi-minimal:latest
+
+dependencies:
+  python_interpreter:
+    package_system: python3.12
+    python_path: /usr/bin/python3.12
+  # Unpinned = latest release at build time (versions are recorded in the release notes).
+  ansible_core:
+    package_pip: ansible-core
+  ansible_runner:
+    package_pip: ansible-runner
+  galaxy: requirements.yml
+  python: requirements.txt
+  system: bindep.txt
+  exclude:
+    system:
+      # Several collections ask for RHEL's python3 (3.9) libraries/headers
+      # (python3-devel, python3-six, python3-lxml, ...). The EE runs on
+      # python3.12 and gets these from PyPI; keep the 3.9 stack out of the image.
+      - ~python3-.*
+      # dellemc.openmanage declares ISO tooling for idrac_os_deployment that is
+      # not available in the UBI repositories (RHEL AppStream only).
+      - xorriso
+      - syslinux
+      - isomd5sum
+
+additional_build_files:
+  - src: files
+    dest: files
+
+additional_build_steps:
+  prepend_base: |
+    # Microsoft package repository: PowerShell (pwsh) for RHEL 9
+    RUN curl -fsSL https://packages.microsoft.com/config/rhel/9/prod.repo -o /etc/yum.repos.d/microsoft-prod.repo \
+        && rpm --import https://packages.microsoft.com/keys/microsoft.asc
+  append_final: |
+    # Kerberos client defaults that work inside containers (file ccache, KDC lookup via DNS).
+    # Realm settings stay environment specific: files/krb5.conf.example, README.md
+    COPY _build/files/krb5-ee.conf /etc/krb5.conf.d/ee.conf
+    # PowerShell: no telemetry / update checks inside an execution environment
+    ENV POWERSHELL_TELEMETRY_OPTOUT=1 POWERSHELL_UPDATECHECK=Off DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+    # PowerShell modules from the PowerShell Gallery (files/powershell_modules.txt), for all users
+    COPY _build/files/powershell_modules.txt _build/files/install-powershell-modules.ps1 /tmp/pwsh/
+    RUN pwsh -NoProfile -NonInteractive -File /tmp/pwsh/install-powershell-modules.ps1 /tmp/pwsh/powershell_modules.txt \
+        && rm -rf /tmp/pwsh
+    # Python 2 backports dragged in transitively (jsnapy / solidfire-sdk-python) that
+    # shadow standard library modules on Python 3: remove them.
+    RUN $PYCMD -m pip uninstall -y --root-user-action=ignore enum34 ipaddress 2>/dev/null || true
+    # Fail the build early if anything the Windows connection plugins need is missing
+    RUN pwsh -NoProfile -NonInteractive -Command 'Write-Host ("PowerShell " + $PSVersionTable.PSVersion)' \
+        && $PYCMD -c "import enum, re, ipaddress, winrm, kerberos, pypsrp, spnego, gssapi, krb5, requests_ntlm, requests_kerberos, requests_credssp; assert hasattr(enum, 'IntFlag')" \
+        && klist -V
+    LABEL org.opencontainers.image.title="aap2go - Ansible Automation Platform execution environment" \
+          org.opencontainers.image.description="ansible-core + ansible community package, Windows (winrm/psrp, Kerberos/NTLM/CredSSP), Cisco, Fortinet, Palo Alto, Check Point, F5, Juniper, VMware, NetApp, Dell, NetBox, Kubernetes, Splunk, PowerShell + PowerCLI/dbatools" \
+          org.opencontainers.image.source="https://github.com/devopsteamsdb/aap2go" \
+          org.opencontainers.image.base.name="registry.access.redhat.com/ubi9/ubi-minimal"
+
+options:
+  package_manager_path: /usr/bin/microdnf
+  relax_passwd_permissions: true
+  workdir: /runner
+  user: "1000"
+  container_init:
+    package_pip: dumb-init==1.2.5
+    entrypoint: '["/opt/builder/bin/entrypoint", "dumb-init"]'
+    cmd: '["bash"]'
+  tags:
+    - localhost/aap2go:latest

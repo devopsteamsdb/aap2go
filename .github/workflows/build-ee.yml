@@ -1,0 +1,141 @@
+name: Build execution environment
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Push the image to the registries and create a GitHub release
+        type: boolean
+        default: true
+  # Rebuild regularly to pick up the latest ansible-core, collections, pwsh and
+  # security fixes (uncomment to enable; every run on main creates a release):
+  # schedule:
+  #   - cron: '0 3 1 * *'   # monthly, 03:00 UTC on the 1st
+
+concurrency:
+  group: build-ee-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: aap2go
+  # GitHub Container Registry: ghcr.io/devopsteamsdb/aap2go:<tag>
+  GHCR_IMAGE: ghcr.io/${{ github.repository }}
+  # Docker Hub: same repository as the old ansible2go image, new tag prefix
+  # (devopsteamsdb/devopsteamsdb:aap2go_<date> and aap2go_latest)
+  DOCKERHUB_IMAGE: docker.io/devopsteamsdb/devopsteamsdb
+  DOCKERHUB_TAG_PREFIX: aap2go_
+
+jobs:
+  build:
+    name: Build, test, publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write     # GitHub release
+      packages: write     # ghcr.io
+    env:
+      # optional secrets; the steps that need them are skipped when they are empty
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      REDHAT_REGISTRY_USERNAME: ${{ secrets.REDHAT_REGISTRY_USERNAME }}
+      REDHAT_REGISTRY_PASSWORD: ${{ secrets.REDHAT_REGISTRY_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Free disk space on the runner
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Build metadata
+        id: meta
+        run: |
+          date="$(date -u +'%Y_%m_%d_%H_%M')"
+          echo "date=$date" >> "$GITHUB_OUTPUT"
+          echo "sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          echo "image=localhost/${IMAGE_NAME}:${date}" >> "$GITHUB_OUTPUT"
+          publish=false
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then publish=true; fi
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "${{ inputs.publish }}" == "true" ]]; then publish=true; fi
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish date=$date"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install ansible-builder
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ansible-builder ansible-core
+          ansible-builder --version
+          podman --version
+
+      - name: Log in to registry.redhat.io (only if credentials are configured)
+        if: env.REDHAT_REGISTRY_USERNAME != ''
+        run: echo "$REDHAT_REGISTRY_PASSWORD" | podman login registry.redhat.io -u "$REDHAT_REGISTRY_USERNAME" --password-stdin
+
+      - name: Build the execution environment (ansible-builder)
+        run: bash ./build.sh -t "${{ steps.meta.outputs.image }}"
+
+      - name: Smoke tests
+        run: bash ./test.sh "${{ steps.meta.outputs.image }}"
+
+      - name: Collect image information
+        run: |
+          bash tools/image-info.sh "${{ steps.meta.outputs.image }}" > image-info.md
+          {
+            echo "Image: \`${{ steps.meta.outputs.image }}\`"
+            echo
+            cat image-info.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the generated build context (Containerfile) as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-context
+          path: |
+            context/Containerfile
+            image-info.md
+          retention-days: 30
+
+      - name: Push to GitHub Container Registry
+        if: steps.meta.outputs.publish == 'true'
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+          for tag in "${{ steps.meta.outputs.date }}" "sha-${{ steps.meta.outputs.sha }}" latest; do
+            podman tag "${{ steps.meta.outputs.image }}" "${GHCR_IMAGE}:${tag}"
+            podman push "${GHCR_IMAGE}:${tag}"
+          done
+
+      - name: Push to Docker Hub (only if DOCKERHUB_USERNAME / DOCKERHUB_PASSWORD secrets are configured)
+        if: steps.meta.outputs.publish == 'true' && env.DOCKERHUB_USERNAME != ''
+        run: |
+          echo "$DOCKERHUB_PASSWORD" | podman login docker.io -u "$DOCKERHUB_USERNAME" --password-stdin
+          for tag in "${DOCKERHUB_TAG_PREFIX}${{ steps.meta.outputs.date }}" "${DOCKERHUB_TAG_PREFIX}latest"; do
+            podman tag "${{ steps.meta.outputs.image }}" "${DOCKERHUB_IMAGE}:${tag}"
+            podman push "${DOCKERHUB_IMAGE}:${tag}"
+          done
+
+      - name: Save the image archive for the release (set repository variable ATTACH_IMAGE_ARCHIVE=false to skip)
+        if: steps.meta.outputs.publish == 'true' && vars.ATTACH_IMAGE_ARCHIVE != 'false'
+        run: |
+          podman save "${{ steps.meta.outputs.image }}" | gzip > "${IMAGE_NAME}_${{ steps.meta.outputs.date }}.tar.gz"
+          ls -lh ./*.tar.gz
+
+      - name: Create GitHub release
+        if: steps.meta.outputs.publish == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.run_number }}
+          name: Release ${{ env.IMAGE_NAME }}_${{ steps.meta.outputs.date }}
+          body_path: image-info.md
+          files: '*.tar.gz'
+          fail_on_unmatched_files: false

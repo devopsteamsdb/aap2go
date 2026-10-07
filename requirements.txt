@@ -1,0 +1,43 @@
+# Python packages installed into the execution environment (pip requirements).
+# Collections' own requirements (meta/execution-environment.yml / requirements.txt)
+# are merged in automatically by ansible-builder; this file lists what the
+# collections do not declare themselves. Unpinned = latest at build time.
+
+# Ansible community package: all community collections at versions matching ansible-core
+ansible
+
+# --- carried over from devopsteamsdb/ansible2go requirements.txt
+ansible-lint
+ansible-parallel
+docker                         # community.docker
+gssapi
+jmespath
+kubernetes                     # kubernetes.core
+mitogen
+netapp-lib                     # netapp.ontap
+pexpect
+pyvmomi                        # community.vmware / vmware.vmware
+pywinrm[kerberos,credssp]      # winrm connection plugin (+ Kerberos, CredSSP)
+requests-kerberos
+# "openshift" was not carried over: kubernetes.core >= 2.0 no longer uses it and it
+# pins an outdated kubernetes client.
+
+# --- Windows management: psrp connection plugin + every authentication backend
+pypsrp[kerberos,credssp]       # psrp connection plugin (PowerShell Remoting Protocol)
+pykerberos                     # legacy 'kerberos' module (built from source in the builder stage)
+requests-ntlm
+requests-credssp
+pyspnego[kerberos]
+krb5
+
+# --- microsoft.ad (ldap inventory plugin, LAPS, DNS)
+sansldap
+dnspython
+dpapi-ng
+
+# --- cisco.aci (aci_rest XML payloads, certificate based authentication)
+lxml
+xmljson
+
+# --- general helpers frequently used in playbooks / filters
+netaddr
