@@ -41,9 +41,10 @@ check "ansible-runner" \
     run bash -c 'echo "ansible-runner $(ansible-runner --version)"'
 check "ansible community package" \
     run python3.12 -c 'import importlib.metadata as m; print("ansible", m.version("ansible"))'
-check "every collection from requirements.yml is installed" \
+check "every collection from requirements.yml is installed (incl. local_collections/ tarballs)" \
     bash -c 'list=$(podman run --rm "'"$IMAGE"'" ansible-galaxy collection list 2>/dev/null); rc=0
-             for c in $(awk "/^[[:space:]]*- name:/ {print \$3}" requirements.yml); do
+             # tarball entries: local_collections/<namespace>-<name>-<version>.tar.gz -> <namespace>.<name>
+             for c in $(awk "/^[[:space:]]*- name:/ {print \$3}" requirements.yml | sed -E "s#^.*/##; s#^([^-]+)-([^-]+)-.*[.]tar[.]gz#\1.\2#"); do
                  line=$(printf "%s\n" "$list" | grep -E "^$c " | head -1) || { echo "MISSING: $c"; rc=1; continue; }
                  echo "$line"
              done; exit $rc'

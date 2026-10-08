@@ -36,3 +36,14 @@ collections:
   - name: vmware.vmware_rest
   # --- added after ansible2go
   - name: splunk.es
+  # --- local tarballs (local_collections/, not on Galaxy - Red Hat Automation Hub
+  #     certified content). Paths are relative to the project directory; replace
+  #     the file and update the name here to upgrade.
+  - name: local_collections/ansible-controller-4.8.9.tar.gz
+    type: file
+  - name: local_collections/ansible-eda-2.13.0.tar.gz
+    type: file
+  - name: local_collections/ansible-hub-1.1.2.tar.gz
+    type: file
+  - name: local_collections/ansible-platform-2.7.20260930.tar.gz
+    type: file

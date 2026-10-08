@@ -40,6 +40,12 @@ dependencies:
 additional_build_files:
   - src: files
     dest: files
+  # Collection tarballs that are not on Galaxy (Red Hat certified content from
+  # Automation Hub). Lands in /build/local_collections in the galaxy stage, where
+  # ansible-galaxy runs from /build, so requirements.yml references them by
+  # relative path (type: file).
+  - src: local_collections
+    dest: local_collections
 
 additional_build_steps:
   prepend_base: |

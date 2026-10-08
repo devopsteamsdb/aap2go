@@ -15,6 +15,7 @@ by GitHub Actions.
 | Base image | `registry.access.redhat.com/ubi9/ubi-minimal` with Python 3.12 |
 | Ansible | latest `ansible-core`, latest `ansible` community package, `ansible-runner`, `ansible-lint`, `mitogen` |
 | Collections (latest from Galaxy, deps resolved) | ansible.netcommon, ansible.posix, ansible.utils, ansible.windows, check_point.mgmt, cisco.aci, cisco.ios, cisco.ise, community.crypto, community.docker, community.general, community.vmware, community.windows, containers.podman, dellemc.openmanage, f5networks.f5_modules, fortinet.console, fortinet.fortimanager, fortinet.fortios, fortinet.fortiswitch, fortinet.fortiweb, junipernetworks.junos, kubernetes.core, lowlydba.sqlserver, microsoft.ad, netapp.ontap, netbox.netbox, paloaltonetworks.panos, vmware.vmware, vmware.vmware_rest, **splunk.es** |
+| Collections (local tarballs, `local_collections/`) | Red Hat certified AAP content: ansible.controller 4.8.9, ansible.eda 2.13.0, ansible.hub 1.1.2, ansible.platform 2.7.20260930 |
 | Windows management | `winrm` + `psrp` connection plugins with every auth backend: pywinrm/pypsrp with Kerberos, NTLM and CredSSP (`pykerberos`, `gssapi`, `krb5`, `pyspnego`, `requests-kerberos/-ntlm/-credssp`), Kerberos client (`kinit`, `klist`) with container friendly defaults |
 | PowerShell | pwsh 7 (Microsoft RHEL 9 repo) + modules: VMware.PowerCLI (CEIP off, invalid certificates ignored), VMware.vSphere.SsoAdmin, ImportExcel, PScribo, dbatools, SqlServerDsc, Cisco.IMC, Cisco.UCS.Core, Jenkins, PSWindowsUpdate, Pester, psCheckPoint, psPAS |
 | Python extras | docker, kubernetes, netapp-lib, pyvmomi, jmespath, netaddr, lxml, sansldap, dnspython, dpapi-ng, … (plus everything the collections declare) |
@@ -104,6 +105,7 @@ Secrets / variables used by the workflow (all optional):
 | Want to… | Edit |
 |----------|------|
 | add / remove / pin collections | `requirements.yml` |
+| add / upgrade a collection that is not on Galaxy (e.g. Automation Hub tarball) | drop `<namespace>-<name>-<version>.tar.gz` into `local_collections/` and add `- name: local_collections/<file>` + `type: file` to `requirements.yml` (remove the old tarball/entry when upgrading) |
 | Python packages | `requirements.txt` (collections' own requirements are merged automatically) |
 | RPM packages | `bindep.txt` (UBI 9 BaseOS/AppStream/CRB + Microsoft repo; `[compile]` = builder stage only) |
 | PowerShell modules | `files/powershell_modules.txt` |
@@ -115,7 +117,8 @@ Secrets / variables used by the workflow (all optional):
 
 ```
 execution-environment.yml          ansible-builder v3 definition
-requirements.yml                   collections (Galaxy)
+requirements.yml                   collections (Galaxy + local tarballs)
+local_collections/*.tar.gz         collection tarballs not on Galaxy (Automation Hub)
 requirements.txt                   Python packages
 bindep.txt                         RPM packages
 files/powershell_modules.txt       PowerShell modules (PSGallery)

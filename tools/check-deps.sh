@@ -34,15 +34,17 @@ microdnf -y --nodocs --setopt=install_weak_deps=0 install "$PYPKG" "$PYPKG-devel
 "$PYCMD" -m pip install -q ansible-core ansible-builder bindep
 echo "$(ansible --version | head -1) / ansible-builder $(ansible-builder --version) / $("$PYCMD" --version)"
 
-log "Installing collections from Galaxy (resolves dependencies)"
+log "Installing collections from Galaxy + local_collections/ (resolves dependencies)"
 mkdir -p /tmp/colls
-ansible-galaxy collection install -r /src/requirements.yml -p /tmp/colls 2>&1 | grep -E "was installed successfully|ERROR|error" || true
+# run from /src: tarball entries in requirements.yml are relative to the project directory
+( cd /src && ansible-galaxy collection install -r requirements.yml -p /tmp/colls 2>&1 ) | grep -E "was installed successfully|ERROR|error" || true
 echo "installed: $(find /tmp/colls/ansible_collections -mindepth 2 -maxdepth 2 -type d | wc -l) collections"
 
 log "Introspection (ansible-builder): merged Python / system requirements"
 mkdir -p /tmp/ctx
 cp /src/execution-environment.yml /src/requirements.yml /src/requirements.txt /src/bindep.txt /tmp/ctx/
 cp -r /src/files /tmp/ctx/files
+cp -r /src/local_collections /tmp/ctx/local_collections
 ( cd /tmp/ctx && ansible-builder create -f execution-environment.yml -c context --output-filename Containerfile >/dev/null )
 B=/tmp/ctx/context/_build
 args=(--user-pip="$B/requirements.txt" --user-bindep="$B/bindep.txt")
