@@ -36,10 +36,3 @@ collections:
   - name: vmware.vmware_rest
   # --- added after ansible2go
   - name: splunk.es
-  # --- Red Hat / AAP Collections
-  - name: ansible.hub
-  - name: ansible.eda
-  - name: ansible.platform
-  - name: ansible.controller
-  - name: infra.aap_configuration_extended
-  - name: infra.aap_configuration
